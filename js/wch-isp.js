@@ -58,10 +58,13 @@ export class WchIsp {
   // ---- 内部：与 Python 版的帧格式保持一致（此处为骨架，完整 CRC/分块逻辑可直接对照 bmcu_flasher.py 的 WchIsp 类补全） ----
 
   async _ispHandshake(){
-    // 发送 0xA3 握手，等待 0x55 回应（与 Python 的 _flash_firmware_once 中的 stage isp_key 对应）
-    await this._write(Uint8Array.from([0xA3,0x00,0x00,0x00]));
-    const r=await this._read(4, 1500);
-    if(!r || r[0]!==0x55) throw new Error("握手失败，未收到 0x55");
+    // 演示版：发送握手后等待 2 秒，若无回应则提示用 Python 版（完整版需 8 种组合 + CRC）
+    try{
+      await this._write(Uint8Array.from([0xA3,0x00,0x00,0x00]));
+      const r=await this._read(4, 2000);
+      if(r && r[0]===0x55) return;
+    }catch(e){}
+    throw new Error("握手超时（Web 版为 Beta 演示）。请用 Python 版完成本次刷写：python bmcu_flasher.py firmware.bin --mode usb");
   }
   async _ispErase(){
     // 全片擦除（Python 版 stage erase sectors=64）

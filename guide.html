@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BMCU 参数设置指南</title>
+<style>
+  :root{
+    --bg:#f5f6f8;
+    --surface:#ffffff;
+    --ink:#111418;
+    --muted:#667085;
+    --line:#e4e7ec;
+    --accent:#0ea5b7;
+    --accent-soft:#e6f7f9;
+    --warn:#b54708;
+    --warn-soft:#fff4e5;
+    --ok:#0f7b4f;
+    --ok-soft:#e7f6ee;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.18);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+    line-height:1.65;-webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  header.hero{
+    background:radial-gradient(1200px 400px at 15% -10%,#183a44 0%,#0d1b22 45%,#0b1216 100%);
+    color:#eef6f8;padding:44px 0 38px;
+  }
+  .hero .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+    color:#7dd3dc;border:1px solid rgba(125,211,220,.35);
+    padding:4px 10px;border-radius:999px;
+  }
+  .hero h1{font-size:clamp(26px,4vw,40px);line-height:1.2;margin:16px 0 10px;font-weight:700}
+  .hero p{margin:0;color:#a9bcc4;max-width:640px}
+  .hero .meta{margin-top:18px;display:flex;gap:18px;flex-wrap:wrap;color:#89a3ad;font-size:13px}
+  nav.toc{
+    position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
+  }
+  nav.toc .wrap{display:flex;gap:6px;overflow-x:auto;padding:10px 20px}
+  nav.toc a{
+    white-space:nowrap;color:#344054;font-size:14px;padding:6px 12px;border-radius:999px;
+  }
+  nav.toc a:hover{background:var(--accent-soft);color:#0b6b78}
+  section{padding:44px 0 8px;scroll-margin-top:64px}
+  h2{font-size:22px;margin:0 0 6px;letter-spacing:-.01em}
+  .sub{color:var(--muted);margin:0 0 22px;font-size:14.5px}
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:22px;
+  }
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  @media(max-width:860px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  .steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  @media(max-width:760px){.steps{grid-template-columns:1fr}}
+  .step{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+  .step .n{
+    width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;
+    display:grid;place-items:center;font-size:14px;font-weight:700;margin-bottom:10px;
+  }
+  .step h3{margin:0 0 4px;font-size:15px}
+  .step p{margin:0;color:var(--muted);font-size:13.5px}
+  .pcard{position:relative;overflow:hidden}
+  .pcard::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:var(--stripe)}
+  .ptag{display:inline-block;font-size:12px;color:#0b6b78;background:var(--accent-soft);
+        padding:2px 8px;border-radius:999px;margin-bottom:8px}
+  .pcard h3{margin:0 0 2px;font-size:17px}
+  .pcard .chan{color:var(--muted);font-size:13px;margin-bottom:12px}
+  .kv{display:flex;justify-content:space-between;font-size:13.5px;padding:6px 0;border-top:1px dashed var(--line)}
+  .kv span:last-child{font-weight:600}
+  .pcard .chips{margin-top:12px}
+  .pcard .chip{width:72px}
+  .pcard .chip i{height:28px}
+  .led{
+    width:38px;height:38px;border-radius:50%;flex:0 0 auto;
+    background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.85),var(--c) 55%,#000 160%);
+    box-shadow:0 0 0 3px #00000010,0 0 18px 2px color-mix(in srgb,var(--c) 55%,transparent);
+  }
+  .led.off{background:#2b3138;box-shadow:inset 0 0 8px #0008}
+  .led.blink{animation:blink 1s steps(1,end) infinite}
+  @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:.12}}
+  .ledrow{display:flex;align-items:center;gap:14px}
+  .legend{display:grid;gap:10px}
+  .legend .row{display:flex;align-items:center;gap:12px;font-size:14px}
+  .legend .row b{min-width:88px;font-weight:600}
+  .legend .row span{color:var(--muted)}
+  .gesture{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:860px){.gesture{grid-template-columns:1fr}}
+  .gbox{border:1px solid var(--line);border-radius:12px;padding:16px;background:#fbfcfd}
+  .gbox .arrow{font-size:22px;line-height:1;margin-bottom:8px;color:var(--accent)}
+  .gbox h4{margin:0 0 4px;font-size:15px}
+  .gbox p{margin:0;color:var(--muted);font-size:13.5px}
+  .timeline{margin-top:18px;display:grid;grid-template-columns:3fr 5fr 6fr;border-radius:10px;overflow:hidden;border:1px solid var(--line);font-size:12.5px}
+  .timeline div{padding:10px 12px;text-align:center}
+  .timeline .z1{background:#fff7ed;color:#9a3412}
+  .timeline .z2{background:#f2f4f7;color:#475467}
+  .timeline .z3{background:var(--ok-soft);color:var(--ok)}
+  .timeline b{display:block;font-size:13px}
+  .chips{display:flex;flex-wrap:wrap;gap:10px}
+  .chip{width:86px;text-align:center;font-size:12px;color:var(--muted)}
+  .chip i{display:block;height:34px;border-radius:8px;margin-bottom:6px;box-shadow:inset 0 0 0 1px #00000014,0 0 12px -2px var(--c)}
+  .chip b{display:block;color:var(--ink);font-size:12.5px;font-weight:600}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;background:#fafbfc}
+  tr:last-child td{border-bottom:0}
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+  ol.flow{list-style:none;counter-reset:s;padding:0;margin:0;display:grid;gap:12px}
+  ol.flow li{
+    counter-increment:s;position:relative;padding:14px 16px 14px 52px;
+    background:#fff;border:1px solid var(--line);border-radius:12px;font-size:14px;
+  }
+  ol.flow li::before{
+    content:counter(s);position:absolute;left:16px;top:14px;
+    width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:#0b6b78;
+    display:grid;place-items:center;font-size:12.5px;font-weight:700;
+  }
+  ol.flow li em{font-style:normal;color:var(--muted)}
+  .note{display:flex;gap:12px;padding:14px 16px;border-radius:12px;font-size:14px;margin-top:16px}
+  .note.warn{background:var(--warn-soft);color:#7a2e0e;border:1px solid #f7d4b0}
+  .note.ok{background:var(--ok-soft);color:#0a5c3b;border:1px solid #b8e6cd}
+  .note.info{background:var(--accent-soft);color:#0b5b66;border:1px solid #bfe9ee}
+  .note b{flex:0 0 auto}
+  footer{margin-top:46px;padding:26px 0 40px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+    @media print{
+    nav.toc{display:none}
+    body{background:#fff}
+    .card,.step,.pcard,ol.flow li{box-shadow:none}
+    section{padding:22px 0 0}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="kicker">BMCU 370 · 参数模式</span>
+    <h1>不用刷固件，直接在机器上调参数</h1>
+    <p>退料距离、送料力、打印中压力、送料速度——四根缓冲杆各管一个参数，两颗灯告诉你在改什么、改到了第几档。</p>
+    <div class="meta">
+      <span>固件 11.00.00.00</span>
+      <span>参数模式 v1</span>
+      <span>全片无料时可用</span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#quick">快速开始</a>
+    <a href="#clear">清除标定</a>
+    <a href="#params">四个参数</a>
+    <a href="#gesture">手势</a>
+    <a href="#led">灯语</a>
+    <a href="#color">颜色卡</a>
+    <a href="#cal">标定</a>
+    <a href="#faq">排错</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <section id="quick">
+    <h2>快速开始</h2>
+    <p class="sub">确保四个通道都空着、打印机不在打印。整套操作只用到缓冲杆和两颗灯。</p>
+    <div class="steps">
+      <div class="step">
+        <div class="n">1</div>
+        <h3>长按进入</h3>
+        <p>把要改的那个通道的缓冲杆<b>推到底，保持 5 秒（建议 5–6 秒）</b>。四个通道的灯会闪 3 下，表示已进入。</p>
+      </div>
+      <div class="step">
+        <div class="n">2</div>
+        <h3>轻推 / 轻拉 调档</h3>
+        <p>往里轻推约 1/5 行程或往外轻拉约 1/5，保持 <b>0.15 秒</b>即换一档。状态灯颜色立刻变化。</p>
+      </div>
+      <div class="step">
+        <div class="n">3</div>
+        <h3>双击确认</h3>
+        <p>快速<b>连按两次</b>（每次 0.05–0.4 秒，间隔 &lt;0.8 秒）＝确认并进入下一个通道。不改就双击跳过。</p>
+      </div>
+    </div>
+    <div class="note info">
+      <b>关键点</b>
+      <div>每次操作后必须把杆<b>松手回中</b>，才能触发下一次。一次轻推只走一档，不会连续跳。</div>
+    </div>
+  </section>
+
+  <section id="clear">
+    <h2>清除标定</h2>
+    <p class="sub">需要重标定时先清除，再按向导重做。清除不会丢参数。</p>
+    <div class="grid g2">
+      <div class="card" style="border-left:4px solid #f79009">
+        <h3 style="margin:0 0 8px;font-size:16px">清除标定（恢复出厂）</h3>
+        <p style="margin:0;color:var(--muted);font-size:14px">四根缓冲杆<b>同时推到底，保持 5 秒（建议 5–6 秒）</b></p>
+        <div class="legend" style="margin-top:10px">
+          <div class="row"><div class="led blink" style="--c:#2d6bff"></div><b>蓝灯闪 3 秒</b><span>正在清除并重启</span></div>
+          <div class="row"><div class="led off" style="width:18px;height:18px"></div><b>全灭 1 秒</b><span>重启中</span></div>
+          <div class="row"><div class="led blink" style="--c:#2d6bff"></div><b>蓝灯再闪</b><span>已进新一轮向导，按下述流程重做</span></div>
+        </div>
+        <p class="sub" style="margin:10px 0 0;font-size:13px">清除会同时清掉电机方向，下次上电会自动重学方向。</p>
+      </div>
+      <div class="card" style="border-left:4px solid #0ea5b7">
+        <h3 style="margin:0 0 8px;font-size:16px">清除后做什么</h3>
+        <p style="margin:0;color:var(--muted);font-size:14px">清除后自动进标定向导，按“标定流程”逐通道完成即可。</p>
+        <ul style="margin:10px 0 0;padding-left:18px;color:var(--muted);font-size:14px">
+          <li>标定和参数分开存，清标定<strong>不会</strong>丢参数</li>
+          <li>刷机（全片擦除）会同时清掉两者，刷后必须重做向导</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="params">
+    <h2>四个参数</h2>
+    <p class="sub">用哪根杆长按，就进哪个参数。通道编号 = 标定时蓝灯出现的顺序（第 1 个亮的是通道 1）。三档参数共用一套三色：<b style="color:#0040FF">蓝＝低</b> / <b style="color:#0a7a0a">绿＝中</b> / <b style="color:#e67e00">橙＝高</b>。</p>
+    <div class="grid g4">
+      <article class="card pcard" style="--stripe:linear-gradient(90deg,#FF0000,#FFFF00,#00FF00,#0040FF,#8000FF)">
+        <span class="ptag">通道 1 · 每通道单独设</span>
+        <h3>退料距离</h3>
+        <div class="chan">10 档 · 95–900 mm · 默认 200 mm</div>
+        <div class="chips">
+          <div class="chip"><i style="--c:#FF0000;background:#FF0000"></i><b>95</b>mm</div>
+          <div class="chip"><i style="--c:#FF4000;background:#FF4000"></i><b>150</b>mm</div>
+          <div class="chip"><i style="--c:#FF8000;background:#FF8000"></i><b>200</b>mm</div>
+          <div class="chip"><i style="--c:#FFFF00;background:#FFFF00"></i><b>250</b>mm</div>
+          <div class="chip"><i style="--c:#80FF00;background:#80FF00"></i><b>300</b>mm</div>
+          <div class="chip"><i style="--c:#00FF00;background:#00FF00"></i><b>400</b>mm</div>
+          <div class="chip"><i style="--c:#00FF80;background:#00FF80"></i><b>500</b>mm</div>
+          <div class="chip"><i style="--c:#00C0FF;background:#00C0FF"></i><b>650</b>mm</div>
+          <div class="chip"><i style="--c:#0040FF;background:#0040FF"></i><b>800</b>mm</div>
+          <div class="chip"><i style="--c:#8000FF;background:#8000FF"></i><b>900</b>mm</div>
+        </div>
+      </article>
+      <article class="card pcard" style="--stripe:linear-gradient(90deg,#0040FF,#00CC00,#FF8000)">
+        <span class="ptag">通道 2 · 四通道一起生效</span>
+        <h3>送料力</h3>
+        <div class="chan">3 档 · 统一三色 · 默认 绿/标准</div>
+        <div class="chips">
+          <div class="chip"><i style="--c:#0040FF;background:#0040FF"></i><b>软</b>蓝</div>
+          <div class="chip"><i style="--c:#00CC00;background:#00CC00"></i><b>标准</b>绿</div>
+          <div class="chip"><i style="--c:#FF8000;background:#FF8000"></i><b>强</b>橙</div>
+        </div>
+        <div class="kv"><span>适用</span><span>磨齿时用 / 默认 / 长管多弯</span></div>
+      </article>
+      <article class="card pcard" style="--stripe:linear-gradient(90deg,#0040FF,#00CC00,#FF8000)">
+        <span class="ptag">通道 3 · 四通道一起生效</span>
+        <h3>打印中压力目标</h3>
+        <div class="chan">3 档 · 统一三色 · 默认 绿/52%</div>
+        <div class="chips">
+          <div class="chip"><i style="--c:#0040FF;background:#0040FF"></i><b>48%</b>蓝·偏松</div>
+          <div class="chip"><i style="--c:#00CC00;background:#00CC00"></i><b>52%</b>绿·默认</div>
+          <div class="chip"><i style="--c:#FF8000;background:#FF8000"></i><b>54%</b>橙·偏紧</div>
+        </div>
+        <div class="kv"><span>观察</span><span>缓冲杆居中且不红不蓝即合适</span></div>
+      </article>
+      <article class="card pcard" style="--stripe:linear-gradient(90deg,#0040FF,#00CC00,#FF8000)">
+        <span class="ptag">通道 4 · 四通道一起生效</span>
+        <h3>送料速度</h3>
+        <div class="chan">3 档 · 统一三色 · 默认 绿/60 mm/s</div>
+        <div class="chips">
+          <div class="chip"><i style="--c:#0040FF;background:#0040FF"></i><b>45</b>蓝</div>
+          <div class="chip"><i style="--c:#00CC00;background:#00CC00"></i><b>60</b>绿·默认</div>
+          <div class="chip"><i style="--c:#FF8000;background:#FF8000"></i><b>75</b>橙</div>
+        </div>
+        <div class="kv"><span>单位</span><span>mm/s</span></div>
+      </article>
+    </div>
+    <div class="note warn">
+      <b>为什么退料距离是每通道单独设</b>
+      <div>四根 PTFE 管长度可能不一样。其余三个参数是整机行为，设一次四个通道同时生效——且三档参数共用蓝/绿/橙，学一次就会。</div>
+    </div>
+      </section>
+
+  <section id="gesture">
+    <h2>手势与时间</h2>
+    <p class="sub">只有四个动作。区分它们是靠“杆停在轻推/轻拉位置多久”。</p>
+    <div class="gesture">
+      <div class="gbox">
+        <div class="arrow">↓</div>
+        <h4>推到底 5 秒</h4>
+        <p>进入该通道对应的参数模式（建议 5–6 秒）。</p>
+      </div>
+      <div class="gbox">
+        <div class="arrow">↑</div>
+        <h4>轻拉约 1/5 行程 0.15 秒</h4>
+        <p>档位 +1（状态灯换下一个颜色）。</p>
+      </div>
+      <div class="gbox">
+        <div class="arrow">↓</div>
+        <h4>轻推约 1/5 行程 0.15 秒</h4>
+        <p>档位 −1（状态灯换上一个颜色）。</p>
+      </div>
+    </div>
+    <div class="gesture" style="margin-top:14px">
+      <div class="gbox">
+        <div class="arrow">⇅</div>
+        <h4>快速双击</h4>
+        <p>每次 0.05–0.4 秒，间隔 &lt;0.8 秒＝确认并跳到下一个通道。</p>
+      </div>
+      <div class="gbox">
+        <div class="arrow">⏱</div>
+        <h4>60 秒不动</h4>
+        <p>自动退出。已确认的通道会保留。</p>
+      </div>
+      <div class="gbox">
+        <div class="arrow">4×</div>
+        <h4>四根杆同时推到底 5 秒</h4>
+        <p>清除标定并重启（会重新标定）。</p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:18px">
+      <h3 style="margin:0 0 6px;font-size:15px">按下时长决定动作</h3>
+      <div class="timeline">
+        <div class="z1"><b>50–400 ms</b>算一次“点击”<br>两次点击＝确认</div>
+        <div class="z2"><b>400–800 ms</b>死区<br>不产生任何动作</div>
+        <div class="z3"><b>≥ 150 ms</b>轻推/轻拉<br>+1 或 −1 档</div>
+      </div>
+      <p class="sub" style="margin:14px 0 0;font-size:13px">到端点后继续拉/按不会有变化，值停在首档或末档。</p>
+    </div>
+      </section>
+
+  <section id="led">
+    <h2>灯语</h2>
+    <p class="sub">每个通道有两颗灯，参数模式下分工固定。</p>
+    <div class="grid g2">
+      <div class="card">
+        <div class="ledrow">
+          <div class="led blink" style="--c:#ff2d2d"></div>
+          <div>
+            <h3 style="margin:0 0 2px;font-size:16px">缓冲灯（靠外那颗）</h3>
+            <p style="margin:0;color:var(--muted);font-size:13.5px">红色 1 秒闪一次 ＝“现在改的是这个通道”。<br>进入时会四个通道一起闪 3 下。</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ledrow">
+          <div class="led" style="--c:#ff8000"></div>
+          <div>
+            <h3 style="margin:0 0 2px;font-size:16px">状态灯（靠里那颗）</h3>
+            <p style="margin:0;color:var(--muted);font-size:13.5px">常亮 ＝ 当前档位。<br>颜色对照见下一节。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tablewrap" style="margin-top:18px">
+      <table>
+        <thead><tr><th>你看到</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>四颗缓冲灯闪 3 下</td><td>已进入参数模式</td></tr>
+          <tr><td>某通道缓冲灯红色慢闪</td><td>当前正在设置这个通道</td></tr>
+          <tr><td>该通道状态灯常亮某颜色</td><td>该参数当前档位（查颜色卡）</td></tr>
+          <tr><td>红色慢闪换到下一颗</td><td>上一个通道已确认并保存</td></tr>
+          <tr><td>所有灯恢复常态</td><td>已退出（走完或超时）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note info">
+      <b>正常工作时</b>
+      <div>状态灯：灭＝无料，灰＝已装待用，黄＝送料中，紫＝退料中，蓝＝打印中，红＝故障。<br>
+      缓冲灯：红＝缓冲偏紧，蓝＝缓冲偏松，中间＝正常（开启耗材色显示时显示耗材颜色）。</div>
+    </div>
+      </section>
+
+  <section id="color">
+    <h2>颜色对照卡</h2>
+    <p class="sub">颜色是“档位标签”，不是精确的物理长度。实际以你观察到的效果为准。三档参数统一蓝/绿/橙。</p>
+    <div class="card">
+      <h3 style="margin:0 0 4px;font-size:16px">退料距离 · 10 档</h3>
+      <p class="sub" style="margin:0 0 14px;font-size:13px">颜色越往紫走，退得越长。</p>
+      <div class="chips">
+        <div class="chip"><i style="--c:#FF0000;background:#FF0000"></i><b>95 mm</b>第 1 档</div>
+        <div class="chip"><i style="--c:#FF4000;background:#FF4000"></i><b>150 mm</b>第 2 档</div>
+        <div class="chip"><i style="--c:#FF8000;background:#FF8000"></i><b>200 mm</b>第 3 档 · 默认</div>
+        <div class="chip"><i style="--c:#FFFF00;background:#FFFF00"></i><b>250 mm</b>第 4 档</div>
+        <div class="chip"><i style="--c:#80FF00;background:#80FF00"></i><b>300 mm</b>第 5 档</div>
+        <div class="chip"><i style="--c:#00FF00;background:#00FF00"></i><b>400 mm</b>第 6 档</div>
+        <div class="chip"><i style="--c:#00FF80;background:#00FF80"></i><b>500 mm</b>第 7 档</div>
+        <div class="chip"><i style="--c:#00C0FF;background:#00C0FF"></i><b>650 mm</b>第 8 档</div>
+        <div class="chip"><i style="--c:#0040FF;background:#0040FF"></i><b>800 mm</b>第 9 档</div>
+        <div class="chip"><i style="--c:#8000FF;background:#8000FF"></i><b>900 mm</b>第 10 档</div>
+      </div>
+    </div>
+    <div class="grid g3" style="margin-top:16px">
+      <div class="card">
+        <h3 style="margin:0 0 12px;font-size:15px">送料力 · 统一三色</h3>
+        <div class="chips">
+          <div class="chip"><i style="--c:#0040FF;background:#0040FF"></i><b>软</b>蓝·磨齿时用</div>
+          <div class="chip"><i style="--c:#00CC00;background:#00CC00"></i><b>标准</b>绿·默认</div>
+          <div class="chip"><i style="--c:#FF8000;background:#FF8000"></i><b>强</b>橙·长管多弯</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 12px;font-size:15px">打印中压力目标 · 统一三色</h3>
+        <div class="chips">
+          <div class="chip"><i style="--c:#0040FF;background:#0040FF"></i><b>48%</b>蓝·偏松</div>
+          <div class="chip"><i style="--c:#00CC00;background:#00CC00"></i><b>52%</b>绿·默认</div>
+          <div class="chip"><i style="--c:#FF8000;background:#FF8000"></i><b>54%</b>橙·偏紧</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 12px;font-size:15px">送料速度 · 统一三色</h3>
+        <div class="chips">
+          <div class="chip"><i style="--c:#0040FF;background:#0040FF"></i><b>45</b>蓝</div>
+          <div class="chip"><i style="--c:#00CC00;background:#00CC00"></i><b>60</b>绿·默认</div>
+          <div class="chip"><i style="--c:#FF8000;background:#FF8000"></i><b>75</b>橙</div>
+        </div>
+      </div>
+    </div>
+      </section>
+
+  <section id="flow">
+    <h2>一次完整操作</h2>
+    <p class="sub">例子：把四个通道的退料距离都从 200 mm 改成 400 mm。</p>
+    <ol class="flow">
+      <li>确认四个通道都空着、打印机不在打印。</li>
+      <li>长按<b>通道 1</b> 的杆到底，保持 5 秒（建议 5–6 秒）。四颗缓冲灯闪 3 下。</li>
+      <li>此时通道 1 的缓冲灯红色慢闪，状态灯是<b>橙色</b>（200 mm）。</li>
+      <li>往外轻拉约 1/5 行程保持 0.15 秒，松手回中 —— 变黄（250 mm）。<em>重复一次，变绿（400 mm）。</em></li>
+      <li>快速双击，进入通道 2。此时它的状态灯也是橙色（200 mm）。</li>
+      <li>同样轻拉两次到绿色，双击。通道 3、4 重复。</li>
+      <li>四个通道走完自动退出，灯恢复正常。设置立即生效并已存盘。</li>
+    </ol>
+    <div class="note ok">
+      <b>不想改的通道</b>
+      <div>直接双击跳过即可，原值保持不变。四个通道全是双击，约 4 秒走完。</div>
+    </div>
+      </section>
+
+  <section id="cal">
+    <h2>标定与清除</h2>
+    <p class="sub">标定让固件知道每根杆的实际行程。换副板、动结构、或参数模式手感变差时重做一次。</p>
+    <div class="grid g2">
+      <div class="card">
+        <h3 style="margin:0 0 10px;font-size:16px">什么时候会标定</h3>
+        <ul style="margin:0;padding-left:18px;color:var(--muted);font-size:14px">
+          <li><b>自动：</b>出厂 / 刷机后第一次上电，或标定数据校验不过，或副板数量变化——上电后直接进向导</li>
+          <li><b>手动：</b>四根杆同时推到底 5 秒（见右侧）→ 清除后自动重启并进向导</li>
+        </ul>
+        <div class="note warn" style="margin-top:14px">
+          <b>提示</b>
+          <div>标定前请确保四通道都空着（无耗材），否则向导会跳过有料的通道。</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 10px;font-size:16px">标定流程（逐通道，约 30 秒）</h3>
+        <ol style="margin:0;padding-left:18px;color:var(--muted);font-size:14px;display:grid;gap:6px">
+          <li>某通道 <span style="display:inline-flex;align-items:center;gap:6px"><i class="led blink" style="--c:#2d6bff;width:18px;height:18px"></i>蓝灯快闪</span> → 把这根杆<b>推到底保持 1 秒</b>松手</li>
+          <li>变 <span style="display:inline-flex;align-items:center;gap:6px"><i class="led blink" style="--c:#ff2d2d;width:18px;height:18px"></i>红灯快闪</span> → 同一根杆<b>拉到底保持 1 秒</b>松手</li>
+          <li>该通道 <span style="display:inline-flex;align-items:center;gap:6px"><i class="led" style="--c:#FFD400;width:18px;height:18px"></i>黄灯常亮</span> → 自动跳到下一通道，重复</li>
+          <li>四通道完成后 <span style="display:inline-flex;align-items:center;gap:6px"><i class="led" style="--c:#00CC00;width:18px;height:18px"></i>四灯同绿闪 2 下</span> → 完成，自动学习电机方向（电机会各转一下，无灯提示）</li>
+        </ol>
+        <p class="sub" style="margin:12px 0 0;font-size:13px">每步 30 秒超时未操作会自动跳过该通道。</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <h2>排错</h2>
+    <p class="sub">按现象查。多数问题是“条件不满足”而不是硬件坏。</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th style="width:34%">现象</th><th>原因与处理</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>长按 5 秒没反应</td>
+            <td>① 通道里还有耗材（微动被压）→ 全部抽空；② 打印机正在打印；③ 该通道副板没被识别（灯不亮）。</td>
+          </tr>
+          <tr>
+            <td>灯一直不亮</td>
+            <td>该通道未识别。检查 10 针排线两端是否插到位，换一个通道的副板对比。</td>
+          </tr>
+          <tr>
+            <td>轻推/轻拉没换档</td>
+            <td>行程不够（需约 1/5）或没松手回中。轻推/轻拉约 1/5 行程并保持 0.15 秒，松手回中后再试。</td>
+          </tr>
+          <tr>
+            <td>到某一档就上不去了</td>
+            <td>已到端点（第 1 档或第 10 档）。颜色不再变化是正常现象。</td>
+          </tr>
+          <tr>
+            <td>双击后没进入下一个通道</td>
+            <td>两次点击间隔太长（要 &lt;0.8 秒），或每次按得太久（要 0.05–0.4 秒）。轻点两次。</td>
+          </tr>
+          <tr>
+            <td>断电后设置没了</td>
+            <td>只有在“双击确认”之后才会写盘。重新设一次并确认。</td>
+          </tr>
+          <tr>
+            <td>退料还是不到位</td>
+            <td>档位是标称值。再进一档，或确认管路没有卡阻。</td>
+          </tr>
+          <tr>
+            <td>刷完固件参数全没了</td>
+            <td>刷机会全片擦除，参数和标定都会清空；重新标定后再设参数。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note info">
+      <b>安全边界</b>
+      <div>参数模式只在“所有通道无料 + 不在打印”时可用。一旦打印机开始动作，固件会立刻退出参数模式，把控制权交回打印机。</div>
+    </div>
+  </section>
+
+  <footer>
+    <div>BMCU 370 · 参数设置指南　|　固件 11.00.00.00 + 参数模式 v1　|　2026-11-16</div>
+    <div style="margin-top:6px">颜色为 3.3 V 供电的 WS2812 实际驱动值，不同批次灯珠亮度略有差异，以实物为准。统一三色：蓝＝低档 / 绿＝中档（默认）/ 橙＝高档。</div>
+  </footer>
+</main>
+
+</body>
+</html>

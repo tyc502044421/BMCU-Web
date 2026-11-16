@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BMCU 在线刷写</title>
+<style>
+  :root{--bg:#f5f6f8;--surface:#fff;--ink:#111418;--muted:#667085;--line:#e4e7ec;--accent:#0ea5b7;--accent-soft:#e6f7f9;--radius:12px;--shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.18)}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif;line-height:1.6}
+  .wrap{max-width:860px;margin:0 auto;padding:0 20px}
+  header{padding:24px 0 12px} header h1{margin:0;font-size:22px} header p{margin:6px 0 0;color:var(--muted);font-size:14px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin:16px 0}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  select,button{padding:10px 14px;border-radius:10px;border:1px solid var(--line);font-size:14px}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);cursor:pointer}
+  button:disabled{opacity:.4;cursor:default}
+  #log{height:280px;overflow:auto;background:#0b1216;color:#cce8ee;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;padding:12px;border-radius:10px;white-space:pre-wrap}
+  .muted{color:var(--muted);font-size:13px}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>BMCU 在线刷写</h1>
+    <p>通过浏览器直接刷写固件（Web Serial，需 Chrome/Edge，本地或 HTTPS）。离线可用 <a href="https://github.com/tyc502044421/BMCU-TYC/releases">Python 版 BMCU-Flasher</a>。</p>
+  </header>
+
+  <div class="card">
+    <div class="row">
+      <label>固件
+        <select id="fw">
+          <option value="custom">本地 .bin 文件…</option>
+          <option value="11.1.0-TYC.1" selected>11.1.0-TYC.1（当前）— fw (AMS_AUTO, 200mm, 双微动, RGB开)</option>
+        </select>
+      </label>
+      <input type="file" id="file" accept=".bin" style="display:none">
+      <span id="fname" class="muted"></span>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="connect" class="primary">连接串口</button>
+      <button id="flash" disabled>开始刷写</button>
+      <span id="status" class="muted">未连接</span>
+    </div>
+    <p class="muted" style="margin:10px 0 0">刷写会全片擦除，标定与参数需重做。刷写时请勿插打印机 24V，仅 USB 供电。</p>
+  </div>
+
+  <div class="card">
+    <div id="log">等待连接…&#10;</div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 8px;font-size:15px">说明</h3>
+    <ul style="margin:0;padding-left:18px;color:var(--muted);font-size:13.5px">
+      <li>在线刷写通过 Web Serial 实现 WCH ISP 协议（与 <code>bmcu_flasher.py --mode usb</code> 同源），自动进 Bootloader，无需按键。</li>
+      <li>若浏览器不支持 Web Serial，请用 Python 版：<code>python bmcu_flasher.py firmware.bin --mode usb</code></li>
+      <li>固件文件可在本仓 <a href="./firmware/">firmware/</a> 或 GitHub Releases 下载。</li>
+    </ul>
+  </div>
+</div>
+
+<script type="module">
+import { WchIsp } from './js/wch-isp.js';
+
+const $fw=document.getElementById('fw');
+const $file=document.getElementById('file');
+const $fname=document.getElementById('fname');
+const $connect=document.getElementById('connect');
+const $flash=document.getElementById('flash');
+const $status=document.getElementById('status');
+const $log=document.getElementById('log');
+
+function log(s){ $log.textContent+=s+"\n"; $log.scrollTop=$log.scrollHeight; }
+let port=null, isp=null, fwBytes=null, fwName="";
+
+$fw.onchange=()=>{
+  if($fw.value==='custom'){ $file.click(); }
+  else { fwName=$fw.value; $fname.textContent=fwName+"（在线）"; fwBytes=null; }
+};
+$file.onchange=async()=>{
+  const f=$file.files[0]; if(!f) return;
+  fwName=f.name; $fname.textContent=fwName+" ("+Math.round(f.size/1024)+" KB)";
+  fwBytes=new Uint8Array(await f.arrayBuffer());
+  log(`已选择本地固件：${fwName} ${fwBytes.length} 字节`);
+  $fw.value='custom';
+};
+
+$connect.onclick=async()=>{
+  if(!('serial' in navigator)){ log("当前浏览器不支持 Web Serial，请用 Chrome/Edge 并通过 HTTPS 或 localhost 访问。"); return; }
+  try{
+    port=await navigator.serial.requestPort();
+    await port.open({baudRate:115200});
+    isp=new WchIsp(port, (m)=>log(m));
+    $status.textContent="已连接，等待刷写";
+    $flash.disabled=false;
+    log("串口已打开 115200");
+    // 尝试自动进 Bootloader（与 Python 版相同的 DTR/RTS 时序）
+    await isp.autoEnterBootloader();
+    log("已发送自动进 Bootloader 序列，请保持 USB 连接");
+  }catch(e){ log("连接失败："+e.message); }
+};
+
+$flash.onclick=async()=>{
+  if(!port||!isp){ log("请先连接串口"); return; }
+  try{
+    if(!fwBytes){
+      // 在线固件：从当前站点的 firmware/ 或 GitHub Releases 拉取
+      const url=`./firmware/${fwName}.bin`;
+      log(`下载固件：${url}`);
+      const r=await fetch(url);
+      if(!r.ok) throw new Error(`下载失败 ${r.status}`);
+      fwBytes=new Uint8Array(await r.arrayBuffer());
+      log(`下载完成 ${fwBytes.length} 字节`);
+    }
+    $flash.disabled=true;
+    $status.textContent="刷写中…";
+    await isp.flash(fwBytes);
+    $status.textContent="刷写完成，请重新上电并按向导标定";
+    log("刷写完成，校验通过。请拔插 USB 后按向导完成标定。");
+  }catch(e){
+    log("刷写失败："+e.message);
+    $status.textContent="失败，查看日志";
+  }finally{
+    $flash.disabled=false;
+  }
+};
+</script>
+</body>
+</html>

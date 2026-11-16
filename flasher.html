@@ -71,11 +71,11 @@ const $status=document.getElementById('status');
 const $log=document.getElementById('log');
 
 function log(s){ $log.textContent+=s+"\n"; $log.scrollTop=$log.scrollHeight; }
-let port=null, isp=null, fwBytes=null, fwName="";
+let port=null, isp=null, fwBytes=null, fwName=document.getElementById('fw').value;
 
 $fw.onchange=()=>{
   if($fw.value==='custom'){ $file.click(); }
-  else { fwName=$fw.value; $fname.textContent=fwName+"（在线）"; fwBytes=null; }
+  else { fwName=$fw.value; document.getElementById('fname').textContent=fwName+"（在线）"; $fname.textContent=fwName+"（在线）"; fwBytes=null; }
 };
 $file.onchange=async()=>{
   const f=$file.files[0]; if(!f) return;
